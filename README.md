@@ -64,7 +64,9 @@ static bool decode_success = false;
 static size_t decoded_length = 0;
 
 static void decode_success_callback(const uint8_t *payload, uint16_t payload_len, void *user_ptr) {
-    // the payload {0x01}
+    // *payload => {1}
+    // payload_len => 1 
+    // user_ptr => NULL
 }
 
 void parse_example() {

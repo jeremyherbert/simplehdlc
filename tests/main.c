@@ -82,13 +82,12 @@ static void encode_test_callback_noflush(void **state) {
     callback_buffer_count = 0;
     tx_flushed = false;
 
-    uint8_t buffer[512];
     uint8_t payload[2] = {0x7E, 0x7D};
 
     simplehdlc_callbacks_t callbacks = {0};
     callbacks.tx_byte_callback = tx_callback;
     simplehdlc_context_t context;
-    simplehdlc_init(&context, buffer, sizeof(buffer), &callbacks, NULL);
+    simplehdlc_init(&context, NULL, 0, &callbacks, NULL);
 
     assert_true(simplehdlc_encode_to_callback(&context, payload, sizeof(payload), false) == SIMPLEHDLC_OK);
 
@@ -107,14 +106,13 @@ static void encode_test_callback_withflush(void **state) {
     callback_buffer_count = 0;
     tx_flushed = false;
 
-    uint8_t buffer[512];
     uint8_t payload[2] = {0x7E, 0x7D};
 
     simplehdlc_callbacks_t callbacks = {0};
     callbacks.tx_byte_callback = tx_callback;
     callbacks.tx_flush_buffer_callback = tx_flush_callback;
     simplehdlc_context_t context;
-    simplehdlc_init(&context, buffer, sizeof(buffer), &callbacks, NULL);
+    simplehdlc_init(&context, NULL, 0, &callbacks, NULL);
 
     assert_true(simplehdlc_encode_to_callback(&context, payload, sizeof(payload), true) == SIMPLEHDLC_OK);
 
