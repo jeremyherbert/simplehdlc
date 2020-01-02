@@ -43,7 +43,7 @@ typedef struct {
 
 Depending on which functions you are expecting to call, some of these callbacks will be unused and can be set to `NULL`. If you are not using the encode to callback functionality, both `tx_byte_callback` and `tx_flush_buffer_callback` can be set to `NULL`. If you are not using the parsing functionality, `rx_packet_callback` can be set to `NULL`. All three callbacks allow some opaque user data to be passed to the callback function via `user_ptr`. 
 
-Once the structure is appropriately populated, call the `simplehdlc_init` function to initialise a `simplehdlc_context_t` structure:
+Once the callback structure is appropriately populated, call the `simplehdlc_init` function to initialise a `simplehdlc_context_t` structure:
 
 ```c
 void simplehdlc_init(simplehdlc_context_t *context, uint8_t *parse_buffer, size_t parse_buffer_len, const simplehdlc_callbacks_t *callbacks, void *user_ptr)
@@ -121,7 +121,7 @@ void encode_to_callback_example() {
     // no parsing is being used, so we can pass NULL as the pointer to the parse buffer
     simplehdlc_init(&context, NULL, 0, &callbacks, NULL);
 
-    assert_true(simplehdlc_encode_to_callback(&context, payload, sizeof(payload), true) == SIMPLEHDLC_OK);
+    assert(simplehdlc_encode_to_callback(&context, payload, sizeof(payload), true) == SIMPLEHDLC_OK);
 }
 ```
 
