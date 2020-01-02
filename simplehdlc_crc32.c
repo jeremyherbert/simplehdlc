@@ -2,7 +2,7 @@
 
 // derived from public domain implementation at http://home.thep.lu.se/~bjorn/crc/
 
-#include "hdlc_crc32.h"
+#include "simplehdlc_crc32.h"
 
 //static uint32_t crc32_for_byte(uint32_t r) {
 //    for(int j = 0; j < 8; ++j)
@@ -45,7 +45,7 @@ static const uint32_t crc32_table[0x100] = {
         0x616495a3, 0x1663a535, 0x8f6af48f, 0xf86dc419, 0x660951ba, 0x110e612c, 0x88073096, 0xff000000
 };
 
-uint32_t compute_crc32(const void *data, size_t n_bytes) {
+uint32_t simplehdlc_compute_crc32(const void *data, size_t n_bytes) {
     uint32_t crc = 0;
     for(size_t i = 0; i < n_bytes; ++i)
         crc = crc32_table[(uint8_t)crc ^ ((uint8_t*)data)[i]] ^ crc >> 8;

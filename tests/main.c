@@ -4,13 +4,13 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include "../hdlc.h"
-#include "../hdlc_crc32.h"
+#include "simplehdlc.h"
+#include "simplehdlc_crc32.h"
 
 
 static void crc32_sanity_check(void **state) {
     uint8_t payload[5] = {1, 2, 3, 4, 5};
-    uint32_t crc32 = compute_crc32(payload, 5);
+    uint32_t crc32 = simplehdlc_compute_crc32(payload, 5);
     assert_true(crc32 == 0x470B99F4); // calculated using python binascii module
 }
 
@@ -20,7 +20,7 @@ static void encode_test_too_small(void **state) {
     uint8_t payload[] = {1};
 
     for (int i=0; i<7; i++) {
-        assert_true(hdlc_encode_to_buffer(buffer, i, &encoded_size, payload, sizeof(payload)) == HDLC_ERROR_BUFFER_TOO_SMALL);
+        assert_true(simplehdlc_encode_to_buffer(buffer, i, &encoded_size, payload, sizeof(payload)) == SIMPLEHDLC_ERROR_BUFFER_TOO_SMALL);
         assert_int_equal(encoded_size, 0xFFFF);
     }
 }
@@ -30,9 +30,9 @@ static void encode_test_zero_length_payload(void **state) {
     size_t encoded_size = 0xFFFF;
     uint8_t payload[] = {1};
 
-    assert_true(hdlc_encode_to_buffer(buffer, 7, &encoded_size, payload, 0) == HDLC_OK);
+    assert_true(simplehdlc_encode_to_buffer(buffer, 7, &encoded_size, payload, 0) == SIMPLEHDLC_OK);
     assert_int_equal(encoded_size, 7);
-    assert_int_equal(encoded_size, hdlc_get_encoded_size(payload, 0));
+    assert_int_equal(encoded_size, simplehdlc_get_encoded_size(payload, 0));
 }
 
 static void encode_sanity_check(void **state) {
@@ -40,11 +40,11 @@ static void encode_sanity_check(void **state) {
     size_t encoded_size = 0xFFFF;
     uint8_t payload[1] = {1};
 
-    assert_true(hdlc_encode_to_buffer(buffer, sizeof(buffer), &encoded_size, payload, sizeof(payload)) == HDLC_OK);
+    assert_true(simplehdlc_encode_to_buffer(buffer, sizeof(buffer), &encoded_size, payload, sizeof(payload)) == SIMPLEHDLC_OK);
     assert_int_equal(encoded_size, 8);
-    assert_int_equal(encoded_size, hdlc_get_encoded_size(payload, sizeof(payload)));
+    assert_int_equal(encoded_size, simplehdlc_get_encoded_size(payload, sizeof(payload)));
 
-    uint8_t expected[] = {0x7E, 0x01, 0x00, 0x01, 0x1B, 0xDF, 0x05, 0xA5};
+    uint8_t expected[] = {0x7E, 0x00, 0x01, 0x01, 0xA5, 0x05, 0xDF, 0x1B};
     assert_memory_equal(expected, buffer, encoded_size);
 }
 
@@ -53,14 +53,14 @@ static void encode_test_escaping(void **state) {
     size_t encoded_size = 0xFFFF;
     uint8_t payload[2] = {0x7E, 0x7D};
 
-    assert_true(hdlc_encode_to_buffer(buffer, sizeof(buffer), &encoded_size, payload, sizeof(payload)) == HDLC_OK);
+    assert_true(simplehdlc_encode_to_buffer(buffer, sizeof(buffer), &encoded_size, payload, sizeof(payload)) == SIMPLEHDLC_OK);
     assert_int_equal(encoded_size, 11);
-    assert_int_equal(encoded_size, hdlc_get_encoded_size(payload, sizeof(payload)));
+    assert_int_equal(encoded_size, simplehdlc_get_encoded_size(payload, sizeof(payload)));
 
-    uint8_t expected[] = {0x7E, 0x02, 0x00,
+    uint8_t expected[] = {0x7E, 0x00, 0x02,
                           0x7D, 0x7E ^ (1<<5),
                           0x7D, 0x7D ^ (1<<5),
-                          0x06, 0x4B, 0xD1, 0xDE};
+                          0xDE, 0xD1, 0x4B, 0x06};
     assert_memory_equal(expected, buffer, encoded_size);
 }
 
@@ -85,19 +85,19 @@ static void encode_test_callback_noflush(void **state) {
     uint8_t buffer[512];
     uint8_t payload[2] = {0x7E, 0x7D};
 
-    hdlc_callbacks_t callbacks = {0};
+    simplehdlc_callbacks_t callbacks = {0};
     callbacks.tx_byte_callback = tx_callback;
-    hdlc_context_t context;
-    hdlc_init(&context, buffer, sizeof(buffer), &callbacks, NULL);
+    simplehdlc_context_t context;
+    simplehdlc_init(&context, buffer, sizeof(buffer), &callbacks, NULL);
 
-    assert_true(hdlc_encode_to_callback(&context, payload, sizeof(payload), false) == HDLC_OK);
+    assert_true(simplehdlc_encode_to_callback(&context, payload, sizeof(payload), false) == SIMPLEHDLC_OK);
 
     assert_int_equal(callback_buffer_count, 11);
 
-    uint8_t expected[] = {0x7E, 0x02, 0x00,
+    uint8_t expected[] = {0x7E, 0x00, 0x02,
                           0x7D, 0x7E ^ (1<<5),
                           0x7D, 0x7D ^ (1<<5),
-                          0x06, 0x4B, 0xD1, 0xDE};
+                          0xDE, 0xD1, 0x4B, 0x06};
     assert_memory_equal(expected, callback_buffer, callback_buffer_count);
 
     assert_false(tx_flushed);
@@ -110,20 +110,20 @@ static void encode_test_callback_withflush(void **state) {
     uint8_t buffer[512];
     uint8_t payload[2] = {0x7E, 0x7D};
 
-    hdlc_callbacks_t callbacks = {0};
+    simplehdlc_callbacks_t callbacks = {0};
     callbacks.tx_byte_callback = tx_callback;
     callbacks.tx_flush_buffer_callback = tx_flush_callback;
-    hdlc_context_t context;
-    hdlc_init(&context, buffer, sizeof(buffer), &callbacks, NULL);
+    simplehdlc_context_t context;
+    simplehdlc_init(&context, buffer, sizeof(buffer), &callbacks, NULL);
 
-    assert_true(hdlc_encode_to_callback(&context, payload, sizeof(payload), true) == HDLC_OK);
+    assert_true(simplehdlc_encode_to_callback(&context, payload, sizeof(payload), true) == SIMPLEHDLC_OK);
 
     assert_int_equal(callback_buffer_count, 11);
 
-    uint8_t expected[] = {0x7E, 0x02, 0x00,
+    uint8_t expected[] = {0x7E, 0x00, 0x02,
                           0x7D, 0x7E ^ (1<<5),
                           0x7D, 0x7D ^ (1<<5),
-                          0x06, 0x4B, 0xD1, 0xDE};
+                          0xDE, 0xD1, 0x4B, 0x06};
     assert_memory_equal(expected, callback_buffer, callback_buffer_count);
 
     assert_true(tx_flushed);
@@ -147,16 +147,16 @@ static void parse_sanity_check(void **state) {
     decoded_length = 0;
 
     uint8_t payload[] = {1};
-    uint8_t encoded[] = {0x7E, 0x01, 0x00, 0x01, 0x1B, 0xDF, 0x05, 0xA5};
+    uint8_t encoded[] = {0x7E, 0x00, 0x01, 0x01, 0xA5, 0x05, 0xDF, 0x1B};
 
     uint8_t rx_buffer[512];
-    hdlc_context_t context;
+    simplehdlc_context_t context;
 
-    hdlc_callbacks_t callbacks = {0};
+    simplehdlc_callbacks_t callbacks = {0};
     callbacks.rx_packet_callback = decode_success_callback;
 
-    hdlc_init(&context, rx_buffer, sizeof(rx_buffer), &callbacks, (void *)payload);
-    hdlc_parse(&context, encoded, sizeof(encoded));
+    simplehdlc_init(&context, rx_buffer, sizeof(rx_buffer), &callbacks, (void *) payload);
+    simplehdlc_parse(&context, encoded, sizeof(encoded));
 
     assert_true(decode_success);
     assert_int_equal(decoded_length, 1);
@@ -171,17 +171,17 @@ static void encode_parse_sanity_check(void **state) {
 
     for (int i=0; i<256; i++) payload[i] = i;
 
-    assert_true(hdlc_encode_to_buffer(buffer, sizeof(buffer), &encoded_size, payload, sizeof(payload)) == HDLC_OK);
-    assert_int_equal(encoded_size, hdlc_get_encoded_size(payload, sizeof(payload)));
+    assert_true(simplehdlc_encode_to_buffer(buffer, sizeof(buffer), &encoded_size, payload, sizeof(payload)) == SIMPLEHDLC_OK);
+    assert_int_equal(encoded_size, simplehdlc_get_encoded_size(payload, sizeof(payload)));
 
     uint8_t rx_buffer[512];
-    hdlc_context_t context;
+    simplehdlc_context_t context;
 
-    hdlc_callbacks_t callbacks = {0};
+    simplehdlc_callbacks_t callbacks = {0};
     callbacks.rx_packet_callback = decode_success_callback;
 
-    hdlc_init(&context, rx_buffer, sizeof(rx_buffer), &callbacks, (void *)payload);
-    hdlc_parse(&context, buffer, encoded_size);
+    simplehdlc_init(&context, rx_buffer, sizeof(rx_buffer), &callbacks, (void *) payload);
+    simplehdlc_parse(&context, buffer, encoded_size);
 
     assert_true(decode_success);
     assert_int_equal(decoded_length, sizeof(payload));
