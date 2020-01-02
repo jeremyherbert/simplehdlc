@@ -60,9 +60,6 @@ Some examples of usage are shown below, and more are available in `tests/main.c`
 #### Parsing example
 
 ```c
-static bool decode_success = false;
-static size_t decoded_length = 0;
-
 static void decode_success_callback(const uint8_t *payload, uint16_t payload_len, void *user_ptr) {
     // *payload => {1}
     // payload_len => 1 
@@ -73,7 +70,7 @@ void parse_example() {
     decode_success = false;
     decoded_length = 0;
 
-    uint8_t payload[] = {1};
+    // payload of this packet is {1}
     uint8_t encoded[] = {0x7E, 0x00, 0x01, 0x01, 0xA5, 0x05, 0xDF, 0x1B};
 
     uint8_t rx_buffer[512];
