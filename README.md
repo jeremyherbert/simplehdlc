@@ -1,5 +1,5 @@
 # simplehdlc
-a simple embedded-friendly library inspired by HDLC encoding for transforming a byte-oriented stream transport into a packet transport between two devices. It is suitable for use in small embedded systems due to requiring only static allocation.
+a simple embedded-friendly library inspired by HDLC encoding for transforming a byte-oriented stream transport into a packet transport between two devices. It is suitable for use in resource constrained embedded systems due to its small size and due to requiring only static allocation. It is written in C99. A python implementation is also available at [https://github.com/jeremyherbert/python-simplehdlc](https://github.com/jeremyherbert/python-simplehdlc).
 
 The packet structure is intended to be very simple, and trades customisation for simplicity. The maximum payload size per packet is 65536 bytes. Please note that while the HDLC structure was used as inspiration, this library is not compatible with ISO/IEC 13239:2002 (and is not intended to be).
 
