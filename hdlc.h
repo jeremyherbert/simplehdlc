@@ -11,7 +11,7 @@
 #define HDLC_ESCAPE_MARKER 0x7D
 
 typedef struct {
-    void (*rx_packet_callback)(uint8_t *payload, uint16_t len, void *user_ptr);
+    void (*rx_packet_callback)(const uint8_t *payload, uint16_t len, void *user_ptr);
     void (*tx_byte_callback)(uint8_t byte, void *user_ptr);
     void (*tx_flush_buffer_callback)(void *user_ptr);
 } hdlc_callbacks_t;

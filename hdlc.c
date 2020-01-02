@@ -61,7 +61,7 @@ void hdlc_parse(hdlc_context_t *context, const uint8_t *data, size_t len) {
             if (context->rx_count < context->expected_len-4) {
                 context->rx_buffer[context->rx_count++] = c;
             } else {
-                context->rx_crc32 |= c;
+                context->rx_crc32 |= c << 24;
                 context->rx_count++;
 
                 if (context->rx_count == context->expected_len) {
@@ -73,7 +73,7 @@ void hdlc_parse(hdlc_context_t *context, const uint8_t *data, size_t len) {
 
                     context->state = HDLC_STATE_WAITING_FOR_FRAME_MARKER;
                 } else {
-                    context->rx_crc32 <<= 8;
+                    context->rx_crc32 >>= 8;
                 }
             }
         }
