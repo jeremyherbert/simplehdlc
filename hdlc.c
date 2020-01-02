@@ -114,7 +114,8 @@ hdlc_error_code_t
 hdlc_encode_to_buffer(uint8_t *buffer, size_t buffer_len, size_t *encoded_size, const uint8_t *payload,
                       uint16_t payload_len) {
 
-    if (buffer_len < 7 || hdlc_get_encoded_size(payload, payload_len) > buffer_len) return HDLC_ERROR_BUFFER_TOO_SMALL;
+    size_t expected_size = hdlc_get_encoded_size(payload, payload_len);
+    if (buffer_len < 7 || expected_size > buffer_len) return HDLC_ERROR_BUFFER_TOO_SMALL;
 
     size_t output_index = 0;
 
@@ -133,6 +134,8 @@ hdlc_encode_to_buffer(uint8_t *buffer, size_t buffer_len, size_t *encoded_size, 
     escape_and_add_to_buffer((crc32 & 0xFF0000) >> 16, buffer, &output_index);
     escape_and_add_to_buffer((crc32 & 0xFF000000) >> 24, buffer, &output_index);
 
+    if (output_index != expected_size) return HDLC_ERROR_INTERNAL_ENCODE_LENGTH_MISMATCH;
+
     *encoded_size = output_index;
 
     return HDLC_OK;
@@ -149,6 +152,8 @@ static void escape_and_send_to_callback(hdlc_context_t *context, uint8_t byte) {
 
 hdlc_error_code_t
 hdlc_encode_to_callback(hdlc_context_t *context, const uint8_t *payload, uint16_t payload_len, bool flush) {
+    if (context->callbacks.tx_byte_callback == NULL) return HDLC_ERROR_CALLBACK_MISSING;
+
     context->callbacks.tx_byte_callback(HDLC_BOUNDARY_MARKER, context->user_ptr);
 
     escape_and_send_to_callback(context, payload_len & 0xFF);
@@ -165,7 +170,11 @@ hdlc_encode_to_callback(hdlc_context_t *context, const uint8_t *payload, uint16_
     escape_and_send_to_callback(context, (crc32 & 0xFF000000) >> 24);
 
     if (flush) {
-        context->callbacks.tx_flush_buffer_callback(context->user_ptr);
+        if (context->callbacks.tx_flush_buffer_callback != NULL) {
+            context->callbacks.tx_flush_buffer_callback(context->user_ptr);
+        } else {
+            return HDLC_ERROR_CALLBACK_MISSING;
+        }
     }
 
     return HDLC_OK;

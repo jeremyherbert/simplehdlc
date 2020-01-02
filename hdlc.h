@@ -25,7 +25,9 @@ typedef enum {
 
 typedef enum {
     HDLC_OK = 0,
-    HDLC_ERROR_BUFFER_TOO_SMALL = 1
+    HDLC_ERROR_BUFFER_TOO_SMALL = 1,
+    HDLC_ERROR_CALLBACK_MISSING = 2,
+    HDLC_ERROR_INTERNAL_ENCODE_LENGTH_MISMATCH = 3
 } hdlc_error_code_t;
 
 typedef struct {

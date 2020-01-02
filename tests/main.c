@@ -64,6 +64,73 @@ static void encode_test_escaping(void **state) {
     assert_memory_equal(expected, buffer, encoded_size);
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
+static uint8_t callback_buffer[512];
+static uint8_t callback_buffer_count;
+static bool tx_flushed;
+
+static void tx_callback(uint8_t byte, void *user_ptr) {
+    callback_buffer[callback_buffer_count++] = byte;
+}
+
+static void tx_flush_callback(void *user_ptr) {
+    tx_flushed = true;
+}
+
+static void encode_test_callback_noflush(void **state) {
+    callback_buffer_count = 0;
+    tx_flushed = false;
+
+    uint8_t buffer[512];
+    uint8_t payload[2] = {0x7E, 0x7D};
+
+    hdlc_callbacks_t callbacks = {0};
+    callbacks.tx_byte_callback = tx_callback;
+    hdlc_context_t context;
+    hdlc_init(&context, buffer, sizeof(buffer), &callbacks, NULL);
+
+    assert_true(hdlc_encode_to_callback(&context, payload, sizeof(payload), false) == HDLC_OK);
+
+    assert_int_equal(callback_buffer_count, 11);
+
+    uint8_t expected[] = {0x7E, 0x02, 0x00,
+                          0x7D, 0x7E ^ (1<<5),
+                          0x7D, 0x7D ^ (1<<5),
+                          0x06, 0x4B, 0xD1, 0xDE};
+    assert_memory_equal(expected, callback_buffer, callback_buffer_count);
+
+    assert_false(tx_flushed);
+}
+
+static void encode_test_callback_withflush(void **state) {
+    callback_buffer_count = 0;
+    tx_flushed = false;
+
+    uint8_t buffer[512];
+    uint8_t payload[2] = {0x7E, 0x7D};
+
+    hdlc_callbacks_t callbacks = {0};
+    callbacks.tx_byte_callback = tx_callback;
+    callbacks.tx_flush_buffer_callback = tx_flush_callback;
+    hdlc_context_t context;
+    hdlc_init(&context, buffer, sizeof(buffer), &callbacks, NULL);
+
+    assert_true(hdlc_encode_to_callback(&context, payload, sizeof(payload), true) == HDLC_OK);
+
+    assert_int_equal(callback_buffer_count, 11);
+
+    uint8_t expected[] = {0x7E, 0x02, 0x00,
+                          0x7D, 0x7E ^ (1<<5),
+                          0x7D, 0x7D ^ (1<<5),
+                          0x06, 0x4B, 0xD1, 0xDE};
+    assert_memory_equal(expected, callback_buffer, callback_buffer_count);
+
+    assert_true(tx_flushed);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
 
 static bool decode_success = false;
 static size_t decoded_length = 0;
@@ -128,9 +195,13 @@ int main(void) {
             cmocka_unit_test(encode_sanity_check),
             cmocka_unit_test(encode_test_escaping),
 
+            cmocka_unit_test(encode_test_callback_noflush),
+            cmocka_unit_test(encode_test_callback_withflush),
+
             cmocka_unit_test(parse_sanity_check),
 
             cmocka_unit_test(encode_parse_sanity_check)
     };
+
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
