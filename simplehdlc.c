@@ -50,7 +50,7 @@ void simplehdlc_parse(simplehdlc_context_t *context, const uint8_t *data, size_t
             context->expected_len |= c;
             context->expected_len += 4; // for the CRC32
 
-            if (context->expected_len > (context->rx_buffer_len) || context->expected_len < 5) {
+            if (context->expected_len > (context->rx_buffer_len + 4) || context->expected_len < 4) {
                 // packet is too large or too small, so ignore it
                 context->state = SIMPLEHDLC_STATE_WAITING_FOR_FRAME_MARKER;
             } else {

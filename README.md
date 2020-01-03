@@ -13,7 +13,7 @@ Description | `0x7E` (frame boundary marker) | payload length | payload | CRC32
 --- | --- | --- | --- | ---
 Size (bytes) | 1 | 2 | N | 4 
 
-The payload length is the length of the payload exclusively (no other fields are included). It also does *not include* any escape characters. As such, the number of bytes encoded into the payload field may not match the payload length field while the data is on the wire.
+The payload length is the length of the payload exclusively (no other fields are included). It also does *not include* any escape characters. As such, the number of bytes encoded into the payload field may not match the payload length field while the data is on the wire. The CRC32 is also calculated on the payload field only, and using the unescaped bytes.
 
 The payload length and CRC32 are both sent MSB first, and the payload is sent with the 0th byte first, and the Nth byte last. The ethernet polynomial is used for the CRC32 (this matches the python `binascii.crc32` function).
 
@@ -73,13 +73,13 @@ void parse_example() {
     // payload of this packet is {1}
     uint8_t encoded[] = {0x7E, 0x00, 0x01, 0x01, 0xA5, 0x05, 0xDF, 0x1B};
 
-    uint8_t rx_buffer[512];
+    uint8_t rx_buffer[1];
     simplehdlc_context_t context;
 
     simplehdlc_callbacks_t callbacks = {0};
     callbacks.rx_packet_callback = decode_success_callback;
 
-    simplehdlc_init(&context, rx_buffer, sizeof(rx_buffer), &callbacks, (void *) payload);
+    simplehdlc_init(&context, rx_buffer, sizeof(rx_buffer), &callbacks, NULL);
     simplehdlc_parse(&context, encoded, sizeof(encoded));
 }
 ```

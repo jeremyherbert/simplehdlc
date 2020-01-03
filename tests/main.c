@@ -14,6 +14,8 @@ static void crc32_sanity_check(void **state) {
     assert_true(crc32 == 0x470B99F4); // calculated using python binascii module
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
 static void encode_test_too_small(void **state) {
     uint8_t buffer[7];
     size_t encoded_size = 0xFFFF;
@@ -147,7 +149,7 @@ static void parse_sanity_check(void **state) {
     uint8_t payload[] = {1};
     uint8_t encoded[] = {0x7E, 0x00, 0x01, 0x01, 0xA5, 0x05, 0xDF, 0x1B};
 
-    uint8_t rx_buffer[512];
+    uint8_t rx_buffer[1];
     simplehdlc_context_t context;
 
     simplehdlc_callbacks_t callbacks = {0};
@@ -160,8 +162,41 @@ static void parse_sanity_check(void **state) {
     assert_int_equal(decoded_length, 1);
 }
 
+static void parse_test_buffer_too_small(void **state) {
+    decode_success = false;
+    decoded_length = 0;
+
+    uint8_t payload[] = {0x7E, 0x7D};
+    uint8_t encoded[] = {0x7E, 0x00, 0x02,
+                         0x7D, 0x7E ^ (1<<5),
+                         0x7D, 0x7D ^ (1<<5),
+                         0xDE, 0xD1, 0x4B, 0x06};
+
+    uint8_t rx_buffer[1];
+    simplehdlc_context_t context;
+
+    simplehdlc_callbacks_t callbacks = {0};
+    callbacks.rx_packet_callback = decode_success_callback;
+
+    simplehdlc_init(&context, rx_buffer, sizeof(rx_buffer), &callbacks,  (void *) payload);
+    simplehdlc_parse(&context, encoded, sizeof(encoded));
+
+    assert_false(decode_success);
+    assert_int_equal(decoded_length, 0);
+
+    uint8_t rx_buffer2[2];
+    simplehdlc_context_t context2;
+
+    simplehdlc_init(&context2, rx_buffer2, sizeof(rx_buffer2), &callbacks,  (void *) payload);
+    simplehdlc_parse(&context2, encoded, sizeof(encoded));
+
+    assert_true(decode_success);
+    assert_int_equal(decoded_length, 2);
+}
+
 static void encode_parse_sanity_check(void **state) {
     decode_success = false;
+    decoded_length = 0;
 
     uint8_t buffer[512];
     size_t encoded_size = 0xFFFF;
@@ -172,7 +207,7 @@ static void encode_parse_sanity_check(void **state) {
     assert_true(simplehdlc_encode_to_buffer(buffer, sizeof(buffer), &encoded_size, payload, sizeof(payload)) == SIMPLEHDLC_OK);
     assert_int_equal(encoded_size, simplehdlc_get_encoded_size(payload, sizeof(payload)));
 
-    uint8_t rx_buffer[512];
+    uint8_t rx_buffer[256];
     simplehdlc_context_t context;
 
     simplehdlc_callbacks_t callbacks = {0};
@@ -183,6 +218,30 @@ static void encode_parse_sanity_check(void **state) {
 
     assert_true(decode_success);
     assert_int_equal(decoded_length, sizeof(payload));
+}
+
+static void encode_parse_test_zero_length_packet(void **state) {
+    decode_success = false;
+    decoded_length = 0xFFFF;
+
+    uint8_t buffer[7];
+    size_t encoded_size = 0xFFFF;
+    uint8_t payload[] = {1};
+
+    assert_true(simplehdlc_encode_to_buffer(buffer, 7, &encoded_size, payload, 0) == SIMPLEHDLC_OK);
+    assert_int_equal(encoded_size, 7);
+
+    uint8_t rx_buffer[256];
+    simplehdlc_context_t context;
+
+    simplehdlc_callbacks_t callbacks = {0};
+    callbacks.rx_packet_callback = decode_success_callback;
+
+    simplehdlc_init(&context, rx_buffer, sizeof(rx_buffer), &callbacks, (void *) payload);
+    simplehdlc_parse(&context, buffer, encoded_size);
+
+    assert_true(decode_success);
+    assert_int_equal(decoded_length, 0);
 }
 
 int main(void) {
@@ -197,8 +256,10 @@ int main(void) {
             cmocka_unit_test(encode_test_callback_withflush),
 
             cmocka_unit_test(parse_sanity_check),
+            cmocka_unit_test(parse_test_buffer_too_small),
 
-            cmocka_unit_test(encode_parse_sanity_check)
+            cmocka_unit_test(encode_parse_sanity_check),
+            cmocka_unit_test(encode_parse_test_zero_length_packet)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
