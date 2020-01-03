@@ -128,4 +128,4 @@ void encode_to_callback_example() {
 
 To use this library, add `simplehdlc.c` and `simplehdlc_crc32.c` to your build, and add the corresponding header files to your include path. 
 
-The CRC implementation uses a hard-coded 256 byte lookup table, as flash memory is generally more abundant than RAM in embedded systems. If you are really struggling with flash size in your application, this can be replaced with a just-in-time computed version.
+The CRC implementation uses a hard-coded 1024 byte lookup table (256 entries, 4 bytes each), as flash memory is generally more abundant than RAM in embedded systems. If you are really struggling with flash size in your application, this can be replaced with a just-in-time computed version.
