@@ -3,6 +3,10 @@
 #ifndef SIMPLEHDLC_SIMPLEHDLC_H
 #define SIMPLEHDLC_SIMPLEHDLC_H
 
+#ifdef __cplusplus
+extern 'C' {
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -54,4 +58,7 @@ simplehdlc_error_code_t
 simplehdlc_encode_to_buffer(uint8_t *buffer, size_t buffer_len, size_t *encoded_size, const uint8_t *payload,
                             uint16_t payload_len);
 
+#ifdef __cplusplus
+}
+#endif
 #endif //SIMPLEHDLC_SIMPLEHDLC_H
