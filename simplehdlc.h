@@ -11,8 +11,13 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 
+#ifndef SIMPLEHDLC_BOUNDARY_MARKER
 #define SIMPLEHDLC_BOUNDARY_MARKER 0x7E
+#endif
+
+#ifndef SIMPLEHDLC_ESCAPE_MARKER
 #define SIMPLEHDLC_ESCAPE_MARKER 0x7D
+#endif
 
 typedef struct {
     void (*rx_packet_callback)(const uint8_t *payload, uint16_t len, void *user_ptr);
